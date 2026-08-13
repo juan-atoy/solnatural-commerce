@@ -116,7 +116,7 @@ function AdminDashboard() {
     );
   }
 
-  const stats = summary.data?.[0];
+  const stats = summary.data;
 
   return (
     <StoreLayout>
@@ -132,16 +132,16 @@ function AdminDashboard() {
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="Ventas"
-              value={formatMoney(stats?.total_revenue)}
-              hint={`${stats?.total_orders ?? 0} pedidos`}
+              value={formatMoney(stats?.gross_sales)}
+              hint={`${stats?.orders_count ?? 0} pedidos`}
               icon={DollarSign}
             />
             <StatCard label="Costos" value={formatMoney(stats?.total_cost)} icon={Package} />
-            <StatCard label="Utilidad" value={formatMoney(stats?.total_profit)} icon={PiggyBank} />
+            <StatCard label="Utilidad" value={formatMoney(stats?.gross_profit)} icon={PiggyBank} />
             <StatCard
               label="Margen"
-              value={formatPercent(stats?.margin_percent)}
-              hint={`Ticket promedio ${formatMoney(stats?.average_order_value)}`}
+              value={formatPercent(stats?.margin)}
+              hint={`Ticket promedio ${formatMoney(stats?.avg_ticket)}`}
               icon={TrendingUp}
             />
           </div>
@@ -162,7 +162,7 @@ function AdminDashboard() {
                 {(topProducts.data ?? []).map((row) => (
                   <TableRow key={row.product_id}>
                     <TableCell>{row.product_name}</TableCell>
-                    <TableCell className="text-right">{row.units_sold}</TableCell>
+                    <TableCell className="text-right">{row.units}</TableCell>
                     <TableCell className="text-right">{formatMoney(row.profit)}</TableCell>
                   </TableRow>
                 ))}
@@ -182,8 +182,8 @@ function AdminDashboard() {
               </TableHeader>
               <TableBody>
                 {(lowStock.data ?? []).map((row) => (
-                  <TableRow key={row.product_id}>
-                    <TableCell>{row.product_name}</TableCell>
+                  <TableRow key={row.id}>
+                    <TableCell>{row.name}</TableCell>
                     <TableCell className="text-right">{row.stock}</TableCell>
                     <TableCell className="text-right">{row.min_stock}</TableCell>
                   </TableRow>

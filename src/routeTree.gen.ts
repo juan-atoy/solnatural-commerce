@@ -10,17 +10,25 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CarritoRouteImport } from './routes/carrito'
 import { Route as CatalogoRouteImport } from './routes/catalogo'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as PedidoConfirmadoRouteImport } from './routes/pedido-confirmado'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedMiCuentaRouteImport } from './routes/_authenticated/mi-cuenta'
+import { Route as AuthenticatedMisPedidosRouteImport } from './routes/_authenticated/mis-pedidos'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
 import { Route as ProductoSlugRouteImport } from './routes/producto.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -48,6 +56,21 @@ const PedidoConfirmadoRoute = PedidoConfirmadoRouteImport.update({
   path: '/pedido-confirmado',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMiCuentaRoute = AuthenticatedMiCuentaRouteImport.update({
+  id: '/mi-cuenta',
+  path: '/mi-cuenta',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMisPedidosRoute = AuthenticatedMisPedidosRouteImport.update({
+  id: '/mis-pedidos',
+  path: '/mis-pedidos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const CategoriaSlugRoute = CategoriaSlugRouteImport.update({
   id: '/categoria/$slug',
   path: '/categoria/$slug',
@@ -66,6 +89,9 @@ export interface FileRoutesByFullPath {
   '/catalogo': typeof CatalogoRoute
   '/checkout': typeof CheckoutRoute
   '/pedido-confirmado': typeof PedidoConfirmadoRoute
+  '/admin': typeof AuthenticatedAdminRoute
+  '/mi-cuenta': typeof AuthenticatedMiCuentaRoute
+  '/mis-pedidos': typeof AuthenticatedMisPedidosRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/producto/$slug': typeof ProductoSlugRoute
 }
@@ -76,17 +102,24 @@ export interface FileRoutesByTo {
   '/catalogo': typeof CatalogoRoute
   '/checkout': typeof CheckoutRoute
   '/pedido-confirmado': typeof PedidoConfirmadoRoute
+  '/admin': typeof AuthenticatedAdminRoute
+  '/mi-cuenta': typeof AuthenticatedMiCuentaRoute
+  '/mis-pedidos': typeof AuthenticatedMisPedidosRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/producto/$slug': typeof ProductoSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/carrito': typeof CarritoRoute
   '/catalogo': typeof CatalogoRoute
   '/checkout': typeof CheckoutRoute
   '/pedido-confirmado': typeof PedidoConfirmadoRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/mi-cuenta': typeof AuthenticatedMiCuentaRoute
+  '/_authenticated/mis-pedidos': typeof AuthenticatedMisPedidosRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/producto/$slug': typeof ProductoSlugRoute
 }
@@ -99,6 +132,9 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/checkout'
     | '/pedido-confirmado'
+    | '/admin'
+    | '/mi-cuenta'
+    | '/mis-pedidos'
     | '/categoria/$slug'
     | '/producto/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -109,22 +145,30 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/checkout'
     | '/pedido-confirmado'
+    | '/admin'
+    | '/mi-cuenta'
+    | '/mis-pedidos'
     | '/categoria/$slug'
     | '/producto/$slug'
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/auth'
     | '/carrito'
     | '/catalogo'
     | '/checkout'
     | '/pedido-confirmado'
+    | '/_authenticated/admin'
+    | '/_authenticated/mi-cuenta'
+    | '/_authenticated/mis-pedidos'
     | '/categoria/$slug'
     | '/producto/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   CarritoRoute: typeof CarritoRoute
   CatalogoRoute: typeof CatalogoRoute
@@ -141,6 +185,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -178,6 +229,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PedidoConfirmadoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mi-cuenta': {
+      id: '/_authenticated/mi-cuenta'
+      path: '/mi-cuenta'
+      fullPath: '/mi-cuenta'
+      preLoaderRoute: typeof AuthenticatedMiCuentaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mis-pedidos': {
+      id: '/_authenticated/mis-pedidos'
+      path: '/mis-pedidos'
+      fullPath: '/mis-pedidos'
+      preLoaderRoute: typeof AuthenticatedMisPedidosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/categoria/$slug': {
       id: '/categoria/$slug'
       path: '/categoria/$slug'
@@ -195,8 +267,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedMiCuentaRoute: typeof AuthenticatedMiCuentaRoute
+  AuthenticatedMisPedidosRoute: typeof AuthenticatedMisPedidosRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedMiCuentaRoute: AuthenticatedMiCuentaRoute,
+  AuthenticatedMisPedidosRoute: AuthenticatedMisPedidosRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   CarritoRoute: CarritoRoute,
   CatalogoRoute: CatalogoRoute,
