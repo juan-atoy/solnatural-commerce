@@ -1,0 +1,1 @@
+update public.categories set image_url = null;
