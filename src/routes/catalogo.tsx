@@ -16,10 +16,10 @@ import {
 import { fetchCatalog, fetchCategories, type CatalogSort } from "@/services/supabase/catalog";
 
 type CatalogSearch = {
-  q?: string;
-  category?: string;
-  sort?: CatalogSort;
-  page?: number;
+  q?: string | undefined;
+  category?: string | undefined;
+  sort?: CatalogSort | undefined;
+  page?: number | undefined;
 };
 
 const SORTS: { value: CatalogSort; label: string }[] = [
