@@ -10,12 +10,19 @@ import type {
 
 export type DateRange = { from: string | null; to: string | null };
 
+/** Builds RPC date arguments, omitting empty bounds (exactOptionalPropertyTypes). */
+function rangeArgs(range: DateRange) {
+  return {
+    ...(range.from ? { p_from: range.from } : {}),
+    ...(range.to ? { p_to: range.to } : {}),
+  };
+}
+
 /* ---------------------------------- Metrics --------------------------------- */
 
 export async function getSalesSummary(range: DateRange) {
   const { data, error } = await supabase.rpc("get_sales_summary", {
-    p_from: range.from ?? undefined,
-    p_to: range.to ?? undefined,
+    ...rangeArgs(range),
   });
   if (error) throw error;
   return data?.[0] ?? null;
@@ -33,8 +40,7 @@ export async function getSalesByPeriod(from: string, to: string, bucket: "day" |
 
 export async function getTopProducts(range: DateRange, limit = 8) {
   const { data, error } = await supabase.rpc("get_top_products", {
-    p_from: range.from ?? undefined,
-    p_to: range.to ?? undefined,
+    ...rangeArgs(range),
     p_limit: limit,
   });
   if (error) throw error;
@@ -43,8 +49,7 @@ export async function getTopProducts(range: DateRange, limit = 8) {
 
 export async function getSalesByCategory(range: DateRange) {
   const { data, error } = await supabase.rpc("get_sales_by_category", {
-    p_from: range.from ?? undefined,
-    p_to: range.to ?? undefined,
+    ...rangeArgs(range),
   });
   if (error) throw error;
   return data ?? [];
@@ -52,8 +57,7 @@ export async function getSalesByCategory(range: DateRange) {
 
 export async function getOrdersByStatus(range: DateRange) {
   const { data, error } = await supabase.rpc("get_orders_by_status", {
-    p_from: range.from ?? undefined,
-    p_to: range.to ?? undefined,
+    ...rangeArgs(range),
   });
   if (error) throw error;
   return data ?? [];
@@ -67,8 +71,7 @@ export async function getLowStockProducts() {
 
 export async function getTopCustomers(range: DateRange, limit = 10) {
   const { data, error } = await supabase.rpc("get_top_customers", {
-    p_from: range.from ?? undefined,
-    p_to: range.to ?? undefined,
+    ...rangeArgs(range),
     p_limit: limit,
   });
   if (error) throw error;
@@ -77,8 +80,7 @@ export async function getTopCustomers(range: DateRange, limit = 10) {
 
 export async function getSalesReport(range: DateRange) {
   const { data, error } = await supabase.rpc("get_sales_report", {
-    p_from: range.from ?? undefined,
-    p_to: range.to ?? undefined,
+    ...rangeArgs(range),
   });
   if (error) throw error;
   return data ?? [];
@@ -185,7 +187,7 @@ export async function adjustStock(productId: string, newStock: number, notes?: s
   const { error } = await supabase.rpc("adjust_stock", {
     p_product_id: productId,
     p_new_stock: newStock,
-    p_notes: notes ?? undefined,
+    ...(notes ? { p_notes: notes } : {}),
   });
   if (error) throw error;
 }
@@ -266,7 +268,7 @@ export async function setOrderStatus(orderId: string, status: OrderStatus, note?
   const { error } = await supabase.rpc("set_order_status", {
     p_order_id: orderId,
     p_status: status,
-    p_note: note ?? undefined,
+    ...(note ? { p_note: note } : {}),
   });
   if (error) throw error;
 }

@@ -40,10 +40,10 @@ export async function createOrder(payload: CheckoutPayload): Promise<CreatedOrde
     p_customer_phone: payload.customer_phone,
     p_shipping_address: payload.shipping_address,
     p_shipping_city: payload.shipping_city,
-    p_shipping_region: payload.shipping_region ?? undefined,
+    ...(payload.shipping_region ? { p_shipping_region: payload.shipping_region } : {}),
     p_shipping_country: payload.shipping_country ?? "Colombia",
     p_payment_method: payload.payment_method,
-    p_notes: payload.notes ?? undefined,
+    ...(payload.notes ? { p_notes: payload.notes } : {}),
   });
   if (error) throw error;
   return data as unknown as CreatedOrder;
