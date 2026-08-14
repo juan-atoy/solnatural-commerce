@@ -1,0 +1,14 @@
+.git
+.github
+.lovable
+.output
+.tanstack
+.vinxi
+.nitro
+node_modules
+npm-debug.log*
+.env
+.env.*
+!.env.local.example
+docs
+

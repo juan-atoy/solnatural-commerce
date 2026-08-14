@@ -21,6 +21,7 @@ import { Route as AuthenticatedMiCuentaRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedMisPedidosRouteImport } from './routes/_authenticated/mis-pedidos'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
 import { Route as ProductoSlugRouteImport } from './routes/producto.$slug'
+import { Route as AuthenticatedMisPedidosIdRouteImport } from './routes/_authenticated/mis-pedidos.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -81,6 +82,12 @@ const ProductoSlugRoute = ProductoSlugRouteImport.update({
   path: '/producto/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedMisPedidosIdRoute =
+  AuthenticatedMisPedidosIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedMisPedidosRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -91,9 +98,10 @@ export interface FileRoutesByFullPath {
   '/pedido-confirmado': typeof PedidoConfirmadoRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/mi-cuenta': typeof AuthenticatedMiCuentaRoute
-  '/mis-pedidos': typeof AuthenticatedMisPedidosRoute
+  '/mis-pedidos': typeof AuthenticatedMisPedidosRouteWithChildren
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/producto/$slug': typeof ProductoSlugRoute
+  '/mis-pedidos/$id': typeof AuthenticatedMisPedidosIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -104,9 +112,10 @@ export interface FileRoutesByTo {
   '/pedido-confirmado': typeof PedidoConfirmadoRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/mi-cuenta': typeof AuthenticatedMiCuentaRoute
-  '/mis-pedidos': typeof AuthenticatedMisPedidosRoute
+  '/mis-pedidos': typeof AuthenticatedMisPedidosRouteWithChildren
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/producto/$slug': typeof ProductoSlugRoute
+  '/mis-pedidos/$id': typeof AuthenticatedMisPedidosIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -119,9 +128,10 @@ export interface FileRoutesById {
   '/pedido-confirmado': typeof PedidoConfirmadoRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/mi-cuenta': typeof AuthenticatedMiCuentaRoute
-  '/_authenticated/mis-pedidos': typeof AuthenticatedMisPedidosRoute
+  '/_authenticated/mis-pedidos': typeof AuthenticatedMisPedidosRouteWithChildren
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/producto/$slug': typeof ProductoSlugRoute
+  '/_authenticated/mis-pedidos/$id': typeof AuthenticatedMisPedidosIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/mis-pedidos'
     | '/categoria/$slug'
     | '/producto/$slug'
+    | '/mis-pedidos/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/mis-pedidos'
     | '/categoria/$slug'
     | '/producto/$slug'
+    | '/mis-pedidos/$id'
   id:
     | '__root__'
     | '/'
@@ -164,6 +176,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mis-pedidos'
     | '/categoria/$slug'
     | '/producto/$slug'
+    | '/_authenticated/mis-pedidos/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -264,19 +277,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductoSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/mis-pedidos/$id': {
+      id: '/_authenticated/mis-pedidos/$id'
+      path: '/$id'
+      fullPath: '/mis-pedidos/$id'
+      preLoaderRoute: typeof AuthenticatedMisPedidosIdRouteImport
+      parentRoute: typeof AuthenticatedMisPedidosRoute
+    }
   }
 }
+
+interface AuthenticatedMisPedidosRouteChildren {
+  AuthenticatedMisPedidosIdRoute: typeof AuthenticatedMisPedidosIdRoute
+}
+
+const AuthenticatedMisPedidosRouteChildren: AuthenticatedMisPedidosRouteChildren =
+  {
+    AuthenticatedMisPedidosIdRoute: AuthenticatedMisPedidosIdRoute,
+  }
+
+const AuthenticatedMisPedidosRouteWithChildren =
+  AuthenticatedMisPedidosRoute._addFileChildren(
+    AuthenticatedMisPedidosRouteChildren,
+  )
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedMiCuentaRoute: typeof AuthenticatedMiCuentaRoute
-  AuthenticatedMisPedidosRoute: typeof AuthenticatedMisPedidosRoute
+  AuthenticatedMisPedidosRoute: typeof AuthenticatedMisPedidosRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedMiCuentaRoute: AuthenticatedMiCuentaRoute,
-  AuthenticatedMisPedidosRoute: AuthenticatedMisPedidosRoute,
+  AuthenticatedMisPedidosRoute: AuthenticatedMisPedidosRouteWithChildren,
 }
 
 const AuthenticatedRouteRouteWithChildren =

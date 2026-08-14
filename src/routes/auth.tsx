@@ -12,8 +12,10 @@ import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { friendlyError } from "@/lib/errors";
+import { z } from "zod";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: z.object({ mode: z.enum(["reset"]).optional() }),
   head: () => ({
     meta: [
       { title: "Ingresar o crear cuenta | SolNatural´s" },
@@ -26,6 +28,7 @@ export const Route = createFileRoute("/auth")({
 });
 
 function AuthPage() {
+  const { mode } = Route.useSearch();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
@@ -34,8 +37,39 @@ function AuthPage() {
   const [firstName, setFirstName] = useState("");
 
   useEffect(() => {
-    if (user) void navigate({ to: "/mi-cuenta", replace: true });
-  }, [user, navigate]);
+    if (user && mode !== "reset") void navigate({ to: "/mi-cuenta", replace: true });
+  }, [user, mode, navigate]);
+
+  async function requestPasswordReset(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth?mode=reset`,
+      });
+      if (error) throw error;
+      toast.success("Si la cuenta existe, recibirás un enlace para restablecerla.");
+    } catch (error) {
+      toast.error(friendlyError(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updatePassword(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      toast.success("Contraseña actualizada");
+      void navigate({ to: "/mi-cuenta", replace: true });
+    } catch (error) {
+      toast.error(friendlyError(error));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function signIn(event: React.FormEvent) {
     event.preventDefault();
@@ -98,88 +132,121 @@ function AuthPage() {
           Guarda tu carrito, sigue tus pedidos y recibe novedades.
         </p>
 
-        <Tabs defaultValue="signin" className="mt-8">
-          <TabsList className="w-full">
-            <TabsTrigger value="signin" className="flex-1">
-              Ingresar
-            </TabsTrigger>
-            <TabsTrigger value="signup" className="flex-1">
-              Crear cuenta
-            </TabsTrigger>
-          </TabsList>
+        {mode === "reset" ? (
+          <form onSubmit={updatePassword} className="mt-8 space-y-4">
+            <div>
+              <Label htmlFor="new-password">Nueva contraseña</Label>
+              <Input
+                id="new-password"
+                type="password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={busy || !user}>
+              {busy ? <Loader2 className="size-4 animate-spin" /> : null} Actualizar contraseña
+            </Button>
+          </form>
+        ) : (
+          <Tabs defaultValue="signin" className="mt-8">
+            <TabsList className="w-full">
+              <TabsTrigger value="signin" className="flex-1">
+                Ingresar
+              </TabsTrigger>
+              <TabsTrigger value="signup" className="flex-1">
+                Crear cuenta
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="signin">
-            <form onSubmit={signIn} className="space-y-4">
-              <div>
-                <Label htmlFor="email">Correo</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="password">Contraseña</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={busy}>
-                {busy ? <Loader2 className="size-4 animate-spin" /> : null} Ingresar
-              </Button>
-            </form>
-          </TabsContent>
+            <TabsContent value="signin">
+              <form onSubmit={signIn} className="space-y-4">
+                <div>
+                  <Label htmlFor="email">Correo</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="password">Contraseña</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={busy}>
+                  {busy ? <Loader2 className="size-4 animate-spin" /> : null} Ingresar
+                </Button>
+              </form>
+              <form onSubmit={requestPasswordReset} className="mt-3 text-center">
+                <button
+                  type="submit"
+                  className="text-xs text-primary underline"
+                  disabled={busy || !email}
+                >
+                  Olvidé mi contraseña
+                </button>
+              </form>
+            </TabsContent>
 
-          <TabsContent value="signup">
-            <form onSubmit={signUp} className="space-y-4">
-              <div>
-                <Label htmlFor="firstName">Nombre</Label>
-                <Input
-                  id="firstName"
-                  value={firstName}
-                  onChange={(event) => setFirstName(event.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="email2">Correo</Label>
-                <Input
-                  id="email2"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="password2">Contraseña</Label>
-                <Input
-                  id="password2"
-                  type="password"
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={busy}>
-                {busy ? <Loader2 className="size-4 animate-spin" /> : null} Crear cuenta
-              </Button>
-            </form>
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="signup">
+              <form onSubmit={signUp} className="space-y-4">
+                <div>
+                  <Label htmlFor="firstName">Nombre</Label>
+                  <Input
+                    id="firstName"
+                    value={firstName}
+                    onChange={(event) => setFirstName(event.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email2">Correo</Label>
+                  <Input
+                    id="email2"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="password2">Contraseña</Label>
+                  <Input
+                    id="password2"
+                    type="password"
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={busy}>
+                  {busy ? <Loader2 className="size-4 animate-spin" /> : null} Crear cuenta
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+        )}
 
-        <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="h-px flex-1 bg-border" /> o <span className="h-px flex-1 bg-border" />
-        </div>
-        <Button variant="outline" className="w-full" onClick={google} disabled={busy}>
-          Continuar con Google
-        </Button>
+        {mode !== "reset" ? (
+          <>
+            <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" /> o{" "}
+              <span className="h-px flex-1 bg-border" />
+            </div>
+            <Button variant="outline" className="w-full" onClick={google} disabled={busy}>
+              Continuar con Google
+            </Button>
+          </>
+        ) : null}
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
           Al continuar aceptas nuestras políticas.{" "}

@@ -46,7 +46,17 @@ export async function createOrder(payload: CheckoutPayload): Promise<CreatedOrde
     ...(payload.notes ? { p_notes: payload.notes } : {}),
   });
   if (error) throw error;
-  return data as unknown as CreatedOrder;
+  const order = data as unknown as CreatedOrder;
+
+  // Email is intentionally best-effort: a provider outage must never roll back
+  // or hide an order that PostgreSQL already committed.
+  void supabase.functions
+    .invoke("send-order-notification", { body: { order_id: order.id } })
+    .then(({ error: notificationError }) => {
+      if (notificationError) console.error("Order email dispatch failed", notificationError);
+    });
+
+  return order;
 }
 
 export async function fetchMyOrders(): Promise<Order[]> {

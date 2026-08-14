@@ -1,5 +1,18 @@
 # SolNatural Commerce
 
+## Puesta en marcha local
+
+La instalación reproducible con WSL 2, Docker, Supabase local, creación del primer administrador, Edge Functions y pruebas está documentada en [docs/instalacion-wsl-docker.md](docs/instalacion-wsl-docker.md).
+
+Resumen para un equipo ya preparado:
+
+```bash
+npm ci
+npm run supabase:start
+cp .env.local.example .env.local   # completar con `npm run supabase:status`
+npm run dev
+```
+
 [ROL]: Arquitecto de Software Full Stack Senior especializado en Lovable + Supabase, diseño de plataformas eCommerce modernas, PostgreSQL, Row Level Security (RLS), autenticación, almacenamiento de archivos, funciones server-side, analítica de ventas y UX/UI responsive.
 
 [OBJETIVO]: Diseñar e implementar en Lovable una aplicación web eCommerce completa llamada SolNatural´s, orientada a la venta de productos naturales, utilizando Supabase como backend principal para autenticación, base de datos PostgreSQL, almacenamiento, seguridad y lógica server-side.
@@ -196,7 +209,6 @@ out_of_stock
 discontinued
 inactive
 
-
 Reglas:
 
 active: disponible para compra si existe stock.
@@ -352,7 +364,6 @@ cost
 discount
 total
 
-
 provenientes del navegador como fuente de verdad.
 
 9. Checkout
@@ -420,7 +431,6 @@ notes
 created_at
 updated_at
 
-
 Estados:
 
 pending
@@ -431,14 +441,12 @@ shipped
 delivered
 cancelled
 
-
 Estados de pago:
 
 pending
 paid
 failed
 refunded
-
 
 11. Detalle de pedido
 
@@ -457,7 +465,6 @@ line_total
 line_cost
 line_profit
 
-
 El pedido histórico NO debe depender de modificaciones futuras realizadas al producto.
 
 12. Cálculo de ganancias
@@ -470,36 +477,34 @@ line_total = unit_price * quantity
 line_cost = unit_cost * quantity
 line_profit = line_total - line_cost - discount
 
-
 Por pedido:
 
 gross_sales = SUM(line_total)
 total_cost = SUM(line_cost)
 gross_profit = gross_sales - total_cost - discount_total
 
-
 Si existe costo de envío asumido por la empresa, dejar la arquitectura preparada para almacenar:
 
 shipping_customer_charge
 shipping_company_cost
 
-
 y calcular:
 
 net_profit =
 gross_sales
+
 - total_cost
 - discounts
-+ shipping_customer_charge
-- shipping_company_cost
 
+* shipping_customer_charge
+
+- shipping_company_cost
 
 No utilizar valores flotantes para dinero.
 
 En PostgreSQL utilizar:
 
 NUMERIC(12,2)
-
 
 o precisión superior cuando corresponda.
 
@@ -543,7 +548,6 @@ Mostrar:
 
 Margen bruto (%) =
 (ganancia / ventas) * 100
-
 
 14. Analítica administrativa
 
@@ -607,7 +611,6 @@ Mes anterior
 Este año
 Personalizado
 
-
 16. Qué pedidos cuentan como venta
 
 No contar cualquier pedido creado como ingreso definitivo.
@@ -622,16 +625,13 @@ ready
 shipped
 delivered
 
-
 Excluir:
 
 cancelled
 
-
 Para indicadores de ingresos realmente cobrados, utilizar adicionalmente:
 
 payment_status = paid
-
 
 Mostrar separadamente cuando tenga sentido:
 
@@ -653,7 +653,6 @@ get_profit_summary()
 get_top_products()
 get_sales_by_category()
 get_low_stock_products()
-
 
 Estas funciones deben:
 
@@ -679,7 +678,6 @@ return
 adjustment
 cancellation
 manual_entry
-
 
 Guardar:
 
@@ -759,7 +757,6 @@ total_cost
 gross_profit
 net_profit
 
-
 NUNCA deben estar disponibles para clientes.
 
 Crear RLS específica para impedirlo.
@@ -791,7 +788,6 @@ Clientes
 Notificaciones
 Reportes
 Configuración
-
 
 22. Gestión de productos
 
@@ -835,11 +831,9 @@ Calcular:
 
 ganancia_unitaria = precio_venta - costo
 
-
 y:
 
 margen (%) = ((precio_venta - costo) / precio_venta) * 100
-
 
 23. Pedidos administrativos
 
@@ -870,7 +864,6 @@ Costo
 Ganancia
 Margen
 
-
 solo para administradores.
 
 24. Notificaciones en la aplicación
@@ -880,7 +873,6 @@ Cuando se genere un pedido:
 Crear registro en tabla:
 
 notifications
-
 
 Campos:
 
@@ -894,11 +886,9 @@ entity_id
 is_read
 created_at
 
-
 El administrador debe recibir inmediatamente:
 
 Nuevo pedido #XXXX por $XXX
-
 
 Utilizar Supabase Realtime para actualizar las notificaciones sin recargar la página.
 
@@ -925,7 +915,6 @@ No enviar directamente desde el frontend.
 Utilizar:
 
 Supabase Edge Function
-
 
 con proveedor de email configurable.
 
@@ -1004,7 +993,6 @@ old_values
 new_values
 created_at
 
-
 Usar JSONB donde corresponda.
 
 28. Tablas Supabase sugeridas
@@ -1027,7 +1015,6 @@ notifications
 audit_logs
 store_settings
 
-
 Agregar las tablas auxiliares que técnicamente se requieran.
 
 29. RLS
@@ -1044,11 +1031,9 @@ Público:
 
 SELECT solamente productos visibles.
 
-
 Admin:
 
 CRUD completo.
-
 
 orders
 
@@ -1056,11 +1041,9 @@ Cliente:
 
 SELECT solamente WHERE customer_id = auth.uid()
 
-
 Admin:
 
 SELECT/UPDATE todos.
-
 
 order_items
 
@@ -1068,26 +1051,21 @@ Cliente:
 
 solamente registros asociados a sus pedidos.
 
-
 notifications
 
 solamente el usuario propietario.
-
 
 inventory_movements
 
 solamente administradores.
 
-
 audit_logs
 
 solamente administradores.
 
-
 No crear políticas inseguras del tipo:
 
 USING (true)
-
 
 para tablas administrativas.
 
@@ -1098,7 +1076,6 @@ Crear una implementación segura para comprobar roles evitando recursión de pol
 Ejemplo conceptual:
 
 has_role(auth.uid(), 'admin')
-
 
 Implementar mediante función PostgreSQL segura cuando corresponda.
 
@@ -1143,7 +1120,6 @@ order_items.order_id
 inventory_movements.product_id
 notifications.user_id + is_read
 
-
 Utilizar índices compuestos para filtros administrativos frecuentes cuando estén justificados.
 
 33. UX/UI pública
@@ -1177,7 +1153,6 @@ Mi perfil
 Mis direcciones
 Mis pedidos
 Detalle del pedido
-
 
 34. Home
 
@@ -1228,7 +1203,6 @@ error
 success
 out of stock
 discontinued
-
 
 Agregar toasts para operaciones.
 
@@ -1288,7 +1262,6 @@ UNAUTHORIZED
 FORBIDDEN
 INVALID_ORDER_STATE
 
-
 No mostrar detalles internos de PostgreSQL al usuario final.
 
 40. Configuración
@@ -1324,7 +1297,6 @@ moneda.
 Inicialmente utilizar moneda:
 
 COP
-
 
 pero no hardcodearla en toda la aplicación.
 
@@ -1387,22 +1359,21 @@ Preparar opción de exportar CSV sin comprometer seguridad.
 Construir una pantalla administrativa inicial similar conceptualmente a:
 
 ┌───────────────────────────────────────────────────────────┐
-│ SolNatural´s                             Administrador     │
+│ SolNatural´s Administrador │
 ├───────────────────────────────────────────────────────────┤
-│ Ventas hoy   │ Ganancia hoy │ Pedidos │ Ticket promedio  │
-│ $1.250.000   │ $420.000     │ 18      │ $69.444          │
+│ Ventas hoy │ Ganancia hoy │ Pedidos │ Ticket promedio │
+│ $1.250.000   │ $420.000 │ 18 │ $69.444          │
 ├───────────────────────────────────────────────────────────┤
 │ Ventas del mes              │ Ganancia del mes            │
-│ $24.500.000                 │ $8.300.000                   │
+│ $24.500.000 │ $8.300.000 │
 ├───────────────────────────────────────────────────────────┤
-│        Gráfica ventas y ganancias últimos 30 días          │
+│ Gráfica ventas y ganancias últimos 30 días │
 ├───────────────────────────────┬───────────────────────────┤
-│ Productos más vendidos        │ Stock bajo                │
-│ ...                           │ ...                       │
+│ Productos más vendidos │ Stock bajo │
+│ ... │ ... │
 ├───────────────────────────────┴───────────────────────────┤
-│ Últimos pedidos                                           │
+│ Últimos pedidos │
 └───────────────────────────────────────────────────────────┘
-
 
 El diseño final debe ser mucho más moderno y responsive.
 
@@ -1415,7 +1386,6 @@ No generar métricas críticas mediante:
 localStorage
 estado React
 datos enviados por cliente
-
 
 Usar PostgreSQL como fuente de verdad.
 
@@ -1447,15 +1417,15 @@ Utilizar una estructura equivalente a:
 
 src/
 ├── components/
-│   ├── ui/
-│   ├── store/
-│   └── admin/
+│ ├── ui/
+│ ├── store/
+│ └── admin/
 ├── pages/
 ├── hooks/
 ├── services/
-│   └── supabase/
+│ └── supabase/
 ├── integrations/
-│   └── supabase/
+│ └── supabase/
 ├── lib/
 ├── types/
 ├── validations/
@@ -1464,10 +1434,9 @@ src/
 supabase/
 ├── migrations/
 ├── functions/
-│   ├── create-order/
-│   └── send-order-notification/
+│ ├── create-order/
+│ └── send-order-notification/
 └── config.toml
-
 
 Adáptala a la estructura generada por Lovable sin romper convenciones de la plataforma.
 
@@ -1478,7 +1447,6 @@ Generar TypeScript estricto.
 Evitar:
 
 any
-
 
 salvo justificación técnica.
 
@@ -1532,7 +1500,6 @@ Cuando una operación necesite privilegios o integridad transaccional, ejecutarl
 
 PostgreSQL RPC
 Supabase Edge Function
-
 
 según corresponda.
 
@@ -1616,16 +1583,13 @@ Para código SQL indicar:
 
 // file: supabase/migrations/YYYYMMDDHHMMSS_create_orders.sql
 
-
 Para Edge Functions:
 
 // file: supabase/functions/create-order/index.ts
 
-
 Para frontend:
 
 // file: src/pages/admin/Dashboard.tsx
-
 
 [RESTRICCIONES]:
 

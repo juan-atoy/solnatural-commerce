@@ -1,5 +1,6 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -34,6 +35,29 @@ function AccountPage() {
   const { notifications, unread, markAllRead } = useNotifications();
   const [form, setForm] = useState({ first_name: "", last_name: "", phone: "" });
   const [saving, setSaving] = useState(false);
+  const addresses = useQuery({
+    queryKey: ["addresses", user?.id],
+    enabled: Boolean(user),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("addresses")
+        .select("*")
+        .order("is_default", { ascending: false })
+        .order("created_at");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const [address, setAddress] = useState({
+    label: "Casa",
+    recipient_name: "",
+    phone: "",
+    address_line: "",
+    city: "",
+    region: "",
+    country: "Colombia",
+    is_default: false,
+  });
 
   useEffect(() => {
     if (profile.data) {
@@ -58,6 +82,53 @@ function AccountPage() {
       toast.error(friendlyError(error));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function saveAddress(event: React.FormEvent) {
+    event.preventDefault();
+    if (!user) return;
+    setSaving(true);
+    try {
+      if (address.is_default) {
+        const { error } = await supabase
+          .from("addresses")
+          .update({ is_default: false })
+          .eq("user_id", user.id);
+        if (error) throw error;
+      }
+      const { error } = await supabase.from("addresses").insert({
+        ...address,
+        label: address.label || null,
+        region: address.region || null,
+        user_id: user.id,
+      });
+      if (error) throw error;
+      setAddress({
+        label: "Casa",
+        recipient_name: "",
+        phone: "",
+        address_line: "",
+        city: "",
+        region: "",
+        country: "Colombia",
+        is_default: false,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["addresses"] });
+      toast.success("Dirección guardada");
+    } catch (error) {
+      toast.error(friendlyError(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeAddress(id: string) {
+    const { error } = await supabase.from("addresses").delete().eq("id", id);
+    if (error) toast.error(friendlyError(error));
+    else {
+      await queryClient.invalidateQueries({ queryKey: ["addresses"] });
+      toast.success("Dirección eliminada");
     }
   }
 
@@ -138,6 +209,125 @@ function AccountPage() {
                 </div>
               ))
             )}
+          </div>
+        </section>
+
+        <section className="lg:col-span-2">
+          <h2 className="font-display text-2xl tracking-tight">Mis direcciones</h2>
+          <div className="mt-5 grid gap-6 lg:grid-cols-2">
+            <form onSubmit={saveAddress} className="surface-panel grid gap-4 p-5 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="address-label">Nombre</Label>
+                <Input
+                  id="address-label"
+                  value={address.label}
+                  onChange={(event) => setAddress({ ...address, label: event.target.value })}
+                  placeholder="Casa u oficina"
+                />
+              </div>
+              <div>
+                <Label htmlFor="recipient">Destinatario</Label>
+                <Input
+                  id="recipient"
+                  required
+                  value={address.recipient_name}
+                  onChange={(event) =>
+                    setAddress({ ...address, recipient_name: event.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="address-phone">Teléfono</Label>
+                <Input
+                  id="address-phone"
+                  required
+                  value={address.phone}
+                  onChange={(event) => setAddress({ ...address, phone: event.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="address-city">Ciudad</Label>
+                <Input
+                  id="address-city"
+                  required
+                  value={address.city}
+                  onChange={(event) => setAddress({ ...address, city: event.target.value })}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="address-line">Dirección</Label>
+                <Input
+                  id="address-line"
+                  required
+                  value={address.address_line}
+                  onChange={(event) => setAddress({ ...address, address_line: event.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="address-region">Departamento</Label>
+                <Input
+                  id="address-region"
+                  value={address.region}
+                  onChange={(event) => setAddress({ ...address, region: event.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="address-country">País</Label>
+                <Input
+                  id="address-country"
+                  required
+                  value={address.country}
+                  onChange={(event) => setAddress({ ...address, country: event.target.value })}
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={address.is_default}
+                  onChange={(event) => setAddress({ ...address, is_default: event.target.checked })}
+                />{" "}
+                Usar como dirección principal
+              </label>
+              <Button type="submit" disabled={saving} className="sm:col-span-2">
+                Guardar dirección
+              </Button>
+            </form>
+            <div className="space-y-3">
+              {addresses.isLoading ? (
+                <RowsSkeleton rows={2} />
+              ) : (addresses.data ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">No tienes direcciones guardadas.</p>
+              ) : (
+                (addresses.data ?? []).map((item) => (
+                  <div key={item.id} className="flex gap-3 rounded-xl border p-4">
+                    <div className="flex-1">
+                      <p className="font-medium">
+                        {item.label || "Dirección"}{" "}
+                        {item.is_default ? (
+                          <span className="text-xs text-primary">· Principal</span>
+                        ) : null}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {item.recipient_name} · {item.phone}
+                        <br />
+                        {item.address_line}
+                        <br />
+                        {item.city}
+                        {item.region ? `, ${item.region}` : ""}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label="Eliminar dirección"
+                      onClick={() => void removeAddress(item.id)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </section>
       </div>

@@ -46,15 +46,22 @@ function MyOrdersPage() {
             />
           ) : (
             (orders.data ?? []).map((order) => (
-              <div key={order.id} className="flex flex-wrap items-center gap-4 rounded-xl border p-4">
+              <Link
+                key={order.id}
+                to="/mis-pedidos/$id"
+                params={{ id: order.id }}
+                className="flex flex-wrap items-center gap-4 rounded-xl border p-4 transition-colors hover:bg-secondary/40"
+              >
                 <div className="flex-1">
                   <p className="font-medium">{order.order_number}</p>
-                  <p className="text-xs text-muted-foreground">{formatDateTime(order.created_at)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDateTime(order.created_at)}
+                  </p>
                 </div>
                 <Badge variant="secondary">{ORDER_STATUS_LABEL[order.order_status]}</Badge>
                 <Badge variant="outline">{PAYMENT_STATUS_LABEL[order.payment_status]}</Badge>
                 <p className="font-display text-lg">{formatMoney(order.total)}</p>
-              </div>
+              </Link>
             ))
           )}
         </div>

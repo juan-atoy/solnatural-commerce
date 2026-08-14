@@ -1,11 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AlertTriangle, DollarSign, Package, PiggyBank, TrendingUp } from "lucide-react";
+import { useState } from "react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { EmptyState, ErrorState, RowsSkeleton } from "@/components/store/StateBlocks";
+import { AdminOperations } from "@/components/admin/AdminOperations";
 import { StoreLayout } from "@/components/store/StoreLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -19,6 +32,7 @@ import { useNotifications } from "@/hooks/use-notifications";
 import { formatDateTime, formatMoney, formatPercent } from "@/lib/format";
 import {
   getLowStockProducts,
+  getSalesByPeriod,
   getSalesSummary,
   getTopProducts,
   adminListOrders,
@@ -37,7 +51,14 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminDashboard,
 });
 
-const RANGE = { from: null, to: null };
+const TODAY = new Date().toISOString().slice(0, 10);
+const THIRTY_DAYS_AGO = new Date(Date.now() - 29 * 86_400_000).toISOString().slice(0, 10);
+
+function nextDay(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  date.setDate(date.getDate() + 1);
+  return date.toISOString();
+}
 
 function StatCard({
   label,
@@ -65,16 +86,24 @@ function StatCard({
 function AdminDashboard() {
   const { isAdmin, loading } = useIsAdmin();
   useNotifications();
+  const [from, setFrom] = useState(THIRTY_DAYS_AGO);
+  const [to, setTo] = useState(TODAY);
+  const range = { from: `${from}T00:00:00`, to: nextDay(to) };
 
   const summary = useQuery({
-    queryKey: ["admin", "summary"],
+    queryKey: ["admin", "summary", range.from, range.to],
     enabled: isAdmin,
-    queryFn: () => getSalesSummary(RANGE),
+    queryFn: () => getSalesSummary(range),
   });
   const topProducts = useQuery({
-    queryKey: ["admin", "top-products"],
+    queryKey: ["admin", "top-products", range.from, range.to],
     enabled: isAdmin,
-    queryFn: () => getTopProducts(RANGE, 5),
+    queryFn: () => getTopProducts(range, 5),
+  });
+  const salesSeries = useQuery({
+    queryKey: ["admin", "sales-series", range.from, range.to],
+    enabled: isAdmin,
+    queryFn: () => getSalesByPeriod(range.from, range.to, "day"),
   });
   const lowStock = useQuery({
     queryKey: ["admin", "low-stock"],
@@ -123,6 +152,28 @@ function AdminDashboard() {
       <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
         <p className="eyebrow">Administración</p>
         <h1 className="mt-2 font-display text-4xl tracking-tight">Tablero financiero</h1>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <div>
+            <Label htmlFor="metrics-from">Desde</Label>
+            <Input
+              id="metrics-from"
+              type="date"
+              value={from}
+              max={to}
+              onChange={(event) => setFrom(event.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="metrics-to">Hasta</Label>
+            <Input
+              id="metrics-to"
+              type="date"
+              value={to}
+              min={from}
+              onChange={(event) => setTo(event.target.value)}
+            />
+          </div>
+        </div>
 
         {summary.error ? (
           <div className="mt-8">
@@ -146,6 +197,50 @@ function AdminDashboard() {
             />
           </div>
         )}
+
+        <section className="mt-8 surface-panel p-5">
+          <div>
+            <p className="eyebrow">Tendencia</p>
+            <h2 className="font-display text-2xl">Ventas, costos y utilidad</h2>
+          </div>
+          <div className="mt-5 h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={salesSeries.data ?? []}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
+                <YAxis
+                  tickFormatter={(value) => `$${Math.round(Number(value) / 1000)}k`}
+                  tick={{ fontSize: 11 }}
+                />
+                <Tooltip formatter={(value) => formatMoney(Number(value))} />
+                <Area
+                  type="monotone"
+                  dataKey="sales"
+                  name="Ventas"
+                  stroke="var(--primary)"
+                  fill="var(--primary)"
+                  fillOpacity={0.18}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="cost"
+                  name="Costos"
+                  stroke="#a16207"
+                  fill="#a16207"
+                  fillOpacity={0.08}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="profit"
+                  name="Utilidad"
+                  stroke="#15803d"
+                  fill="#15803d"
+                  fillOpacity={0.08}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
 
         <div className="mt-12 grid gap-10 lg:grid-cols-2">
           <section>
@@ -220,6 +315,8 @@ function AdminDashboard() {
             </TableBody>
           </Table>
         </section>
+
+        <AdminOperations />
       </div>
     </StoreLayout>
   );

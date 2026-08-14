@@ -1,0 +1,21 @@
+name: solnatural-commerce
+
+services:
+  app:
+    container_name: solnatural-commerce-app
+    build:
+      context: .
+      args:
+        VITE_SUPABASE_URL: ${APP_SUPABASE_PUBLIC_URL:?Define APP_SUPABASE_PUBLIC_URL}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${ANON_KEY:?Define ANON_KEY}
+    restart: unless-stopped
+    environment:
+      # The browser uses localhost; SSR reaches the Supabase CLI stack through the host.
+      SUPABASE_URL: ${SUPABASE_INTERNAL_URL:-http://host.docker.internal:54321}
+      SUPABASE_PUBLISHABLE_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:?Define SERVICE_ROLE_KEY}
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-http://localhost:3000}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${APP_PORT:-3000}:3000"
