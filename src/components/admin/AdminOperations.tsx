@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Copy, Plus } from "lucide-react";
+import { Copy, Pencil, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -56,6 +56,7 @@ import {
   PRODUCT_STATUSES,
   PRODUCT_STATUS_LABEL,
   type AdminProduct,
+  type Category,
   type Order,
 } from "@/types/store";
 
@@ -380,51 +381,187 @@ function ProductRow({
 function CategoriesPanel() {
   const client = useQueryClient();
   const categories = useQuery({ queryKey: ["admin", "categories"], queryFn: adminListCategories });
-  const [name, setName] = useState("");
+  const emptyForm = {
+    name: "",
+    slug: "",
+    description: "",
+    image_url: "",
+    is_active: true,
+    sort_order: (categories.data?.length ?? 0) + 1,
+    parent_id: "",
+  };
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState(emptyForm);
+
+  function resetForm() {
+    setEditingId(null);
+    setForm({ ...emptyForm, sort_order: (categories.data?.length ?? 0) + 1 });
+  }
+
+  function startEditing(category: Category) {
+    setEditingId(category.id);
+    setForm({
+      name: category.name,
+      slug: category.slug,
+      description: category.description ?? "",
+      image_url: category.image_url ?? "",
+      is_active: category.is_active,
+      sort_order: category.sort_order,
+      parent_id: category.parent_id ?? "",
+    });
+  }
+
   const mutation = useMutation({
     mutationFn: () =>
       upsertCategory({
-        name,
-        slug: slugify(name),
-        description: null,
-        image_url: null,
-        is_active: true,
-        sort_order: (categories.data?.length ?? 0) + 1,
-        parent_id: null,
-      }),
+        name: form.name.trim(),
+        slug: form.slug.trim() || slugify(form.name),
+        description: form.description.trim() || null,
+        image_url: form.image_url.trim() || null,
+        is_active: form.is_active,
+        sort_order: form.sort_order,
+        parent_id: form.parent_id || null,
+      }, editingId ?? undefined),
     onSuccess: async () => {
-      setName("");
+      const wasEditing = Boolean(editingId);
       await client.invalidateQueries({ queryKey: ["admin", "categories"] });
-      toast.success("Categoría creada");
+      resetForm();
+      toast.success(wasEditing ? "Categoría actualizada" : "Categoría creada");
     },
     onError: (error) => toast.error(friendlyError(error)),
   });
   return (
     <div className="mt-6">
       <form
-        className="flex max-w-lg gap-2"
+        className="surface-panel grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3"
         onSubmit={(e) => {
           e.preventDefault();
           mutation.mutate();
         }}
       >
-        <Input
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Nueva categoría"
-        />
-        <Button disabled={mutation.isPending}>
-          <Plus className="size-4" /> Crear
-        </Button>
+        <div>
+          <Label htmlFor="category-name">Nombre</Label>
+          <Input
+            id="category-name"
+            required
+            value={form.name}
+            onChange={(e) =>
+              setForm({ ...form, name: e.target.value, slug: slugify(e.target.value) })
+            }
+            placeholder="Nombre de la categoría"
+          />
+        </div>
+        <div>
+          <Label htmlFor="category-slug">Slug</Label>
+          <Input
+            id="category-slug"
+            required
+            value={form.slug}
+            onChange={(e) => setForm({ ...form, slug: slugify(e.target.value) })}
+            placeholder="nombre-categoria"
+          />
+        </div>
+        <div>
+          <Label htmlFor="category-order">Orden</Label>
+          <Input
+            id="category-order"
+            type="number"
+            min={0}
+            value={form.sort_order}
+            onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <Label htmlFor="category-description">Descripción</Label>
+          <Input
+            id="category-description"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            placeholder="Descripción opcional"
+          />
+        </div>
+        <div>
+          <Label htmlFor="category-parent">Categoría padre</Label>
+          <Select
+            value={form.parent_id || "none"}
+            onValueChange={(value) =>
+              setForm({ ...form, parent_id: value === "none" ? "" : value })
+            }
+          >
+            <SelectTrigger id="category-parent">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sin categoría padre</SelectItem>
+              {(categories.data ?? [])
+                .filter((category) => category.id !== editingId)
+                .map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="sm:col-span-2">
+          <Label htmlFor="category-image">URL de imagen</Label>
+          <Input
+            id="category-image"
+            type="url"
+            value={form.image_url}
+            onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+            placeholder="https://..."
+          />
+        </div>
+        <div>
+          <Label htmlFor="category-status">Estado</Label>
+          <Select
+            value={form.is_active ? "active" : "inactive"}
+            onValueChange={(value) => setForm({ ...form, is_active: value === "active" })}
+          >
+            <SelectTrigger id="category-status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Activa</SelectItem>
+              <SelectItem value="inactive">Inactiva</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-3">
+          <Button disabled={mutation.isPending}>
+            {editingId ? <Pencil className="size-4" /> : <Plus className="size-4" />}
+            {editingId ? "Guardar cambios" : "Crear categoría"}
+          </Button>
+          {editingId ? (
+            <Button type="button" variant="outline" onClick={resetForm}>
+              <X className="size-4" /> Cancelar edición
+            </Button>
+          ) : null}
+        </div>
       </form>
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {(categories.data ?? []).map((item) => (
           <div key={item.id} className="rounded-xl border p-4">
-            <p className="font-medium">{item.name}</p>
-            <p className="text-xs text-muted-foreground">
-              /{item.slug} · {item.is_active ? "Activa" : "Inactiva"}
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-medium">{item.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  /{item.slug} · {item.is_active ? "Activa" : "Inactiva"} · orden {item.sort_order}
+                </p>
+                {item.description ? (
+                  <p className="mt-2 text-sm text-muted-foreground">{item.description}</p>
+                ) : null}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => startEditing(item)}
+              >
+                <Pencil className="size-4" /> Editar
+              </Button>
+            </div>
           </div>
         ))}
       </div>
