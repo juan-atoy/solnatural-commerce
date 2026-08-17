@@ -24,14 +24,14 @@ import { useQuery } from "@tanstack/react-query";
 function Brand() {
   return (
     <Link to="/" className="flex items-center gap-2">
-      <span className="flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
-        <span className="font-display text-lg leading-none">S</span>
-      </span>
-      <span className="font-display text-xl tracking-tight">SolNatural´s</span>
+      <img
+        src="/logo.png"
+        alt="SolNatural's"
+        className="h-12 w-auto"
+      />
     </Link>
   );
 }
-
 function CartButton() {
   const { count } = useCart();
   return (
