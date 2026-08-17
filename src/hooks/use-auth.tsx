@@ -55,17 +55,18 @@ export function useIsAdmin() {
     queryKey: ["is-admin", user?.id ?? null],
     enabled: Boolean(user?.id),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user!.id)
-        .eq("role", "admin")
-        .maybeSingle();
+      const { data, error } = await supabase.rpc("is_admin");
       if (error) throw error;
-      return Boolean(data);
+      return data === true;
     },
+    refetchOnMount: "always",
   });
-  return { isAdmin: query.data === true, loading: query.isLoading };
+  return {
+    isAdmin: query.data === true,
+    loading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+  };
 }
 
 export function useProfile() {

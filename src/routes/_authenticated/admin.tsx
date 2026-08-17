@@ -84,7 +84,7 @@ function StatCard({
 }
 
 function AdminDashboard() {
-  const { isAdmin, loading } = useIsAdmin();
+  const { isAdmin, loading, error, refetch } = useIsAdmin();
   useNotifications();
   const [from, setFrom] = useState(THIRTY_DAYS_AGO);
   const [to, setTo] = useState(TODAY);
@@ -121,6 +121,16 @@ function AdminDashboard() {
       <StoreLayout>
         <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6">
           <RowsSkeleton rows={4} />
+        </div>
+      </StoreLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <StoreLayout>
+        <div className="mx-auto w-full max-w-3xl px-4 py-16 sm:px-6">
+          <ErrorState onRetry={() => void refetch()} />
         </div>
       </StoreLayout>
     );
