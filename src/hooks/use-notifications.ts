@@ -26,8 +26,12 @@ export function useNotifications() {
 
   useEffect(() => {
     if (!user?.id) return;
+    // Each hook/effect mount needs a distinct topic. React StrictMode mounts effects
+    // twice in development and Supabase rejects adding callbacks to an existing,
+    // already subscribed channel.
+    const channelId = crypto.randomUUID();
     const channel = supabase
-      .channel(`notifications-${user.id}`)
+      .channel(`notifications-${user.id}-${channelId}`)
       .on(
         "postgres_changes",
         {
