@@ -25,7 +25,7 @@ function Brand() {
   return (
     <Link to="/" className="flex items-center gap-2">
       <img
-        src="/logo.png"
+        src="/images/logo.png"
         alt="SolNatural's"
         className="h-12 w-auto"
       />
