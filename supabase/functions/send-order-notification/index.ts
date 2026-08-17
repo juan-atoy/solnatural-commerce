@@ -59,7 +59,7 @@ Deno.serve(async (request) => {
 
     const { data: dispatch, error: dispatchError } = await client
       .from("order_email_dispatches")
-      .select("status,attempts,admin_sent_at,customer_sent_at")
+      .select("status,attempts,admin_sent_at,customer_sent_at,updated_at")
       .eq("order_id", orderId)
       .maybeSingle();
     if (dispatchError) throw dispatchError;
@@ -68,7 +68,10 @@ Deno.serve(async (request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (dispatch.status === "processing" || dispatch.attempts >= 5) {
+    const processingIsFresh =
+      dispatch.status === "processing" &&
+      Date.now() - new Date(dispatch.updated_at).getTime() < 5 * 60 * 1000;
+    if (processingIsFresh || dispatch.attempts >= 5) {
       return new Response(JSON.stringify({ ok: false, retryable: false }), {
         status: 409,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -103,7 +106,7 @@ Deno.serve(async (request) => {
           `<li>${escapeHtml(item.quantity)} × ${escapeHtml(item.product_name)} — ${money(Number(item.line_total))}</li>`,
       )
       .join("");
-    const details = `<h1>Pedido ${escapeHtml(order.order_number)}</h1><ul>${itemRows}</ul><p><strong>Total:</strong> ${money(Number(order.total))}</p><p><strong>Entrega:</strong> ${escapeHtml(order.shipping_address)}, ${escapeHtml(order.shipping_city)}</p><p><strong>Pago:</strong> ${escapeHtml(order.payment_method)}</p>`;
+    const details = `<h1>Pedido ${escapeHtml(order.order_number)}</h1><ul>${itemRows}</ul><p><strong>Total:</strong> ${money(Number(order.total))}</p><p><strong>Método de entrega:</strong> ${escapeHtml(order.shipping_method_name ?? "Envío estándar")}</p><p><strong>Entrega:</strong> ${escapeHtml(order.shipping_address)}, ${escapeHtml(order.shipping_city)}</p><p><strong>Pago:</strong> ${escapeHtml(order.payment_method)}</p>`;
     let adminSentAt = dispatch.admin_sent_at;
     let customerSentAt = dispatch.customer_sent_at;
 
@@ -113,7 +116,7 @@ Deno.serve(async (request) => {
       await sendEmail(
         adminEmail,
         `Nuevo pedido ${order.order_number} por ${money(Number(order.total))}`,
-        `${details}<p><strong>Cliente:</strong> ${escapeHtml(order.customer_name)} (${escapeHtml(order.customer_email)}) · ${escapeHtml(order.customer_phone)}</p>`,
+        `${details}<p><strong>Cliente:</strong> ${escapeHtml(order.customer_name)} (${escapeHtml(order.customer_email)}) · ${escapeHtml(order.customer_phone)}</p><p><a href="${escapeHtml(Deno.env.get("APP_PUBLIC_URL") ?? "http://localhost:3000")}/pedido-admin/${escapeHtml(order.id)}">Abrir pedido en el panel</a></p>`,
       );
       adminSentAt = new Date().toISOString();
       await client

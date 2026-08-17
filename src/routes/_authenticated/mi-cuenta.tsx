@@ -32,7 +32,7 @@ function AccountPage() {
   const { isAdmin } = useIsAdmin();
   const profile = useProfile();
   const queryClient = useQueryClient();
-  const { notifications, unread, markAllRead } = useNotifications();
+  const { notifications, unread, markRead, markAllRead } = useNotifications();
   const [form, setForm] = useState({ first_name: "", last_name: "", phone: "" });
   const [saving, setSaving] = useState(false);
   const addresses = useQuery({
@@ -206,6 +206,17 @@ function AccountPage() {
                   <p className="mt-2 text-xs text-muted-foreground">
                     {formatDateTime(item.created_at)}
                   </p>
+                  {isAdmin && item.entity_type === "order" && item.entity_id ? (
+                    <Button asChild variant="link" size="sm" className="mt-2 h-auto px-0">
+                      <Link
+                        to="/pedido-admin/$id"
+                        params={{ id: item.entity_id }}
+                        onClick={() => void markRead(item.id)}
+                      >
+                        Ver detalle del pedido
+                      </Link>
+                    </Button>
+                  ) : null}
                 </div>
               ))
             )}

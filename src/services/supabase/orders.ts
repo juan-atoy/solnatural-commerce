@@ -11,6 +11,7 @@ export type CheckoutPayload = {
   shipping_region?: string | null;
   shipping_country?: string;
   payment_method: PaymentMethod;
+  shipping_method: string;
   notes?: string | null;
 };
 
@@ -22,6 +23,8 @@ export type CreatedOrder = {
   total: number;
   payment_method: PaymentMethod;
   order_status: string;
+  shipping_method_code: string;
+  shipping_method_name: string;
 };
 
 /**
@@ -30,7 +33,7 @@ export type CreatedOrder = {
  * sends product ids and quantities.
  */
 export async function createOrder(payload: CheckoutPayload): Promise<CreatedOrder> {
-  const { data, error } = await supabase.rpc("create_order", {
+  const { data, error } = await supabase.rpc("create_order_v2", {
     p_items: payload.items.map((line) => ({
       product_id: line.product_id,
       quantity: line.quantity,
@@ -43,6 +46,7 @@ export async function createOrder(payload: CheckoutPayload): Promise<CreatedOrde
     ...(payload.shipping_region ? { p_shipping_region: payload.shipping_region } : {}),
     p_shipping_country: payload.shipping_country ?? "Colombia",
     p_payment_method: payload.payment_method,
+    p_shipping_method: payload.shipping_method,
     ...(payload.notes ? { p_notes: payload.notes } : {}),
   });
   if (error) throw error;
@@ -63,7 +67,7 @@ export async function fetchMyOrders(): Promise<Order[]> {
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id,order_number,created_at,order_status,payment_status,payment_method,total,subtotal,shipping_total,shipping_address,shipping_city,shipping_region,customer_name,customer_email,customer_phone,notes",
+      "id,order_number,created_at,order_status,payment_status,payment_method,total,subtotal,shipping_total,shipping_method_code,shipping_method_name,shipping_address,shipping_city,shipping_region,customer_name,customer_email,customer_phone,notes",
     )
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -75,7 +79,7 @@ export async function fetchMyOrder(id: string) {
     supabase
       .from("orders")
       .select(
-        "id,order_number,created_at,order_status,payment_status,payment_method,total,subtotal,shipping_total,discount_total,shipping_address,shipping_city,shipping_region,shipping_country,customer_name,customer_email,customer_phone,notes",
+        "id,order_number,created_at,order_status,payment_status,payment_method,total,subtotal,shipping_total,discount_total,shipping_method_code,shipping_method_name,shipping_address,shipping_city,shipping_region,shipping_country,customer_name,customer_email,customer_phone,notes",
       )
       .eq("id", id)
       .maybeSingle(),

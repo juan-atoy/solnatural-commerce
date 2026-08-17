@@ -303,7 +303,13 @@ function AdminDashboard() {
             <TableBody>
               {(orders.data ?? []).slice(0, 10).map((order) => (
                 <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.order_number}</TableCell>
+                  <TableCell className="font-medium">
+                    <Button asChild variant="link" className="h-auto px-0">
+                      <Link to="/pedido-admin/$id" params={{ id: order.id }}>
+                        {order.order_number}
+                      </Link>
+                    </Button>
+                  </TableCell>
                   <TableCell>{order.customer_name}</TableCell>
                   <TableCell>{formatDateTime(order.created_at)}</TableCell>
                   <TableCell>

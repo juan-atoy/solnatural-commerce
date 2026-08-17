@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Loader2, Minus, Plus, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { ProductCard } from "@/components/store/ProductCard";
@@ -44,6 +44,8 @@ function ProductPage() {
   const { add } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [busy, setBusy] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  useEffect(() => setSelectedImage(null), [slug]);
 
   const product = useQuery({
     queryKey: ["product", slug],
@@ -99,6 +101,26 @@ function ProductPage() {
   const hasPromo = item.sale_price != null && Number(item.sale_price) < Number(item.price);
   const stock = item.stock ?? 0;
   const purchasable = isPurchasable(item);
+  const media = Array.from(
+    new Set([item.image_url, ...(item.gallery ?? [])].filter(Boolean)),
+  ) as string[];
+  const displayedImage = selectedImage ?? media[0] ?? null;
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: item.name,
+    description: item.short_description ?? item.description,
+    image: media,
+    sku: item.sku,
+    brand: item.brand ? { "@type": "Brand", name: item.brand } : undefined,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "COP",
+      price,
+      availability: purchasable ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      url: typeof window === "undefined" ? `/producto/${slug}` : window.location.href,
+    },
+  };
 
   async function handleAdd() {
     setBusy(true);
@@ -114,6 +136,12 @@ function ProductPage() {
 
   return (
     <StoreLayout>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
+        }}
+      />
       <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
         <nav className="text-sm text-muted-foreground">
           <Link to="/catalogo" className="hover:text-primary">
@@ -134,26 +162,46 @@ function ProductPage() {
         </nav>
 
         <div className="mt-6 grid gap-10 lg:grid-cols-2">
-          <div className="overflow-hidden rounded-3xl border bg-cream">
-            {item.image_url ? (
-              <img
-                src={item.image_url}
-                alt={item.name ?? "Producto natural"}
-                width={1200}
-                height={1200}
-                className="aspect-square w-full object-cover"
-              />
-            ) : (
-              <div className="flex aspect-square items-center justify-center text-muted-foreground">
-                SolNatural´s
+          <div>
+            <div className="overflow-hidden rounded-3xl border bg-cream">
+              {displayedImage ? (
+                <img
+                  src={displayedImage}
+                  alt={item.name ?? "Producto natural"}
+                  width={1200}
+                  height={1200}
+                  className="aspect-square w-full object-cover"
+                />
+              ) : (
+                <div className="flex aspect-square items-center justify-center text-muted-foreground">
+                  SolNatural´s
+                </div>
+              )}
+            </div>
+            {media.length > 1 ? (
+              <div className="mt-3 grid grid-cols-5 gap-2" aria-label="Galería del producto">
+                {media.map((image, index) => (
+                  <button
+                    key={image}
+                    type="button"
+                    className={`overflow-hidden rounded-lg border-2 ${displayedImage === image ? "border-primary" : "border-transparent"}`}
+                    onClick={() => setSelectedImage(image)}
+                    aria-label={`Ver imagen ${index + 1} de ${item.name}`}
+                    aria-pressed={displayedImage === image}
+                  >
+                    <img src={image} alt="" className="aspect-square w-full object-cover" />
+                  </button>
+                ))}
               </div>
-            )}
+            ) : null}
           </div>
 
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <p className="eyebrow">{item.category_name}</p>
-              {hasPromo ? <Badge className="bg-accent text-accent-foreground">Promoción</Badge> : null}
+              {hasPromo ? (
+                <Badge className="bg-accent text-accent-foreground">Promoción</Badge>
+              ) : null}
             </div>
             <h1 className="mt-3 font-display text-4xl leading-tight tracking-tight">{item.name}</h1>
             <p className="mt-3 text-muted-foreground">{item.short_description}</p>
@@ -197,7 +245,11 @@ function ProductPage() {
                 </Button>
               </div>
               <Button size="lg" onClick={handleAdd} disabled={!purchasable || busy}>
-                {busy ? <Loader2 className="size-4 animate-spin" /> : <ShoppingBag className="size-4" />}
+                {busy ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <ShoppingBag className="size-4" />
+                )}
                 Agregar al carrito
               </Button>
               <Button asChild size="lg" variant="outline">
@@ -224,7 +276,10 @@ function ProductPage() {
                 <TabsTrigger value="benefits">Beneficios</TabsTrigger>
                 <TabsTrigger value="usage">Modo de uso</TabsTrigger>
               </TabsList>
-              <TabsContent value="description" className="whitespace-pre-line text-sm text-muted-foreground">
+              <TabsContent
+                value="description"
+                className="whitespace-pre-line text-sm text-muted-foreground"
+              >
                 {item.description ?? "Sin descripción adicional."}
                 {item.ingredients ? (
                   <p className="mt-4">
@@ -233,10 +288,16 @@ function ProductPage() {
                   </p>
                 ) : null}
               </TabsContent>
-              <TabsContent value="benefits" className="whitespace-pre-line text-sm text-muted-foreground">
+              <TabsContent
+                value="benefits"
+                className="whitespace-pre-line text-sm text-muted-foreground"
+              >
                 {item.benefits ?? "Sin beneficios registrados."}
               </TabsContent>
-              <TabsContent value="usage" className="whitespace-pre-line text-sm text-muted-foreground">
+              <TabsContent
+                value="usage"
+                className="whitespace-pre-line text-sm text-muted-foreground"
+              >
                 {item.usage_mode ?? "Sigue las indicaciones del empaque."}
                 {item.warnings ? (
                   <p className="mt-4 text-destructive">Advertencias: {item.warnings}</p>

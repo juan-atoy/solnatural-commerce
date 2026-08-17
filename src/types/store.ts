@@ -22,14 +22,47 @@ export type InventoryMovement = Database["public"]["Tables"]["inventory_movement
 export type AuditLog = Database["public"]["Tables"]["audit_logs"]["Row"];
 export type StoreSettings = Database["public"]["Tables"]["store_settings"]["Row"];
 
+export type ShippingMethod = {
+  code: string;
+  name: string;
+  type: "delivery" | "pickup";
+  enabled: boolean;
+  customer_cost: number;
+  company_cost: number;
+  free_from: number;
+  estimated_days: string;
+};
+
+export function parseShippingMethods(value: unknown): ShippingMethod[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is ShippingMethod => {
+    if (!item || typeof item !== "object") return false;
+    const candidate = item as Partial<ShippingMethod>;
+    return (
+      typeof candidate.code === "string" &&
+      typeof candidate.name === "string" &&
+      (candidate.type === "delivery" || candidate.type === "pickup") &&
+      typeof candidate.enabled === "boolean" &&
+      typeof candidate.customer_cost === "number" &&
+      typeof candidate.company_cost === "number" &&
+      typeof candidate.free_from === "number" &&
+      typeof candidate.estimated_days === "string"
+    );
+  });
+}
+
 export type SalesSummary = Database["public"]["Functions"]["get_sales_summary"]["Returns"][number];
-export type SalesByPeriod = Database["public"]["Functions"]["get_sales_by_period"]["Returns"][number];
+export type SalesByPeriod =
+  Database["public"]["Functions"]["get_sales_by_period"]["Returns"][number];
 export type TopProduct = Database["public"]["Functions"]["get_top_products"]["Returns"][number];
-export type SalesByCategory = Database["public"]["Functions"]["get_sales_by_category"]["Returns"][number];
-export type LowStockProduct = Database["public"]["Functions"]["get_low_stock_products"]["Returns"][number];
+export type SalesByCategory =
+  Database["public"]["Functions"]["get_sales_by_category"]["Returns"][number];
+export type LowStockProduct =
+  Database["public"]["Functions"]["get_low_stock_products"]["Returns"][number];
 export type TopCustomer = Database["public"]["Functions"]["get_top_customers"]["Returns"][number];
 export type SalesReportRow = Database["public"]["Functions"]["get_sales_report"]["Returns"][number];
-export type OrdersByStatus = Database["public"]["Functions"]["get_orders_by_status"]["Returns"][number];
+export type OrdersByStatus =
+  Database["public"]["Functions"]["get_orders_by_status"]["Returns"][number];
 
 export type CartLine = {
   product_id: string;

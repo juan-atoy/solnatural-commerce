@@ -18,10 +18,11 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/hooks/use-cart";
+import { useStoreSettings } from "@/hooks/use-store-settings";
 import { friendlyError } from "@/lib/errors";
 import { formatMoney } from "@/lib/format";
 import { createOrder } from "@/services/supabase/orders";
-import { PAYMENT_METHOD_LABEL, type PaymentMethod } from "@/types/store";
+import { PAYMENT_METHOD_LABEL, parseShippingMethods, type PaymentMethod } from "@/types/store";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -37,7 +38,8 @@ export const Route = createFileRoute("/checkout")({
 
 function CheckoutPage() {
   const { user } = useAuth();
-  const { lines, detailed, subtotal, shipping, total, clear, loading } = useCart();
+  const { lines, detailed, subtotal, shipping, clear, loading } = useCart();
+  const { data: settings } = useStoreSettings();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -50,6 +52,21 @@ function CheckoutPage() {
     notes: "",
   });
   const [method, setMethod] = useState<PaymentMethod>("bank_transfer");
+  const shippingMethods = parseShippingMethods(settings?.shipping_methods).filter(
+    (item) => item.enabled,
+  );
+  const [shippingMethod, setShippingMethod] = useState(
+    settings?.default_shipping_method ?? "standard",
+  );
+  const selectedShipping =
+    shippingMethods.find((item) => item.code === shippingMethod) ?? shippingMethods[0];
+  const calculatedShipping = selectedShipping
+    ? selectedShipping.type === "pickup" ||
+      (selectedShipping.free_from > 0 && subtotal >= selectedShipping.free_from)
+      ? 0
+      : selectedShipping.customer_cost
+    : shipping;
+  const calculatedTotal = subtotal + calculatedShipping;
 
   function field(key: keyof typeof form) {
     return {
@@ -68,10 +85,15 @@ function CheckoutPage() {
         customer_name: form.customer_name,
         customer_email: form.customer_email,
         customer_phone: form.customer_phone,
-        shipping_address: form.shipping_address,
-        shipping_city: form.shipping_city,
-        shipping_region: form.shipping_region || null,
+        shipping_address:
+          selectedShipping?.type === "pickup"
+            ? settings?.address || "Recogida en tienda"
+            : form.shipping_address,
+        shipping_city:
+          selectedShipping?.type === "pickup" ? "Recogida en tienda" : form.shipping_city,
+        shipping_region: selectedShipping?.type === "pickup" ? null : form.shipping_region || null,
         payment_method: method,
+        shipping_method: selectedShipping?.code ?? shippingMethod,
         notes: form.notes || null,
       });
       await clear();
@@ -126,17 +148,47 @@ function CheckoutPage() {
               <Input id="phone" required {...field("customer_phone")} />
             </div>
             <div className="sm:col-span-2">
-              <Label htmlFor="address">Dirección de envío</Label>
-              <Input id="address" required {...field("shipping_address")} />
+              <Label htmlFor="shipping-method">Método de entrega</Label>
+              <Select value={shippingMethod} onValueChange={setShippingMethod}>
+                <SelectTrigger id="shipping-method">
+                  <SelectValue placeholder="Selecciona la entrega" />
+                </SelectTrigger>
+                <SelectContent>
+                  {shippingMethods.map((item) => (
+                    <SelectItem key={item.code} value={item.code}>
+                      {item.name} ·{" "}
+                      {item.customer_cost === 0 ? "Gratis" : formatMoney(item.customer_cost)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedShipping ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {selectedShipping.estimated_days}
+                </p>
+              ) : null}
             </div>
-            <div>
-              <Label htmlFor="city">Ciudad</Label>
-              <Input id="city" required {...field("shipping_city")} />
-            </div>
-            <div>
-              <Label htmlFor="region">Departamento / región</Label>
-              <Input id="region" {...field("shipping_region")} />
-            </div>
+            {selectedShipping?.type === "pickup" ? (
+              <div className="rounded-xl border bg-secondary/40 p-4 text-sm sm:col-span-2">
+                Recoge tu pedido en {settings?.address || "la dirección de la tienda"}. Te
+                avisaremos cuando esté listo.
+              </div>
+            ) : (
+              <>
+                <div className="sm:col-span-2">
+                  <Label htmlFor="address">Dirección de envío</Label>
+                  <Input id="address" required {...field("shipping_address")} />
+                </div>
+                <div>
+                  <Label htmlFor="city">Ciudad</Label>
+                  <Input id="city" required {...field("shipping_city")} />
+                </div>
+                <div>
+                  <Label htmlFor="region">Departamento / región</Label>
+                  <Input id="region" {...field("shipping_region")} />
+                </div>
+              </>
+            )}
             <div className="sm:col-span-2">
               <Label htmlFor="method">Método de pago</Label>
               <Select value={method} onValueChange={(value) => setMethod(value as PaymentMethod)}>
@@ -144,11 +196,13 @@ function CheckoutPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(PAYMENT_METHOD_LABEL).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
+                  {Object.entries(PAYMENT_METHOD_LABEL)
+                    .filter(([value]) => settings?.payment_methods?.includes(value) ?? true)
+                    .map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -163,8 +217,8 @@ function CheckoutPage() {
             Confirmar pedido
           </Button>
           <p className="text-xs text-muted-foreground">
-            El inventario y los precios se validan en el servidor al confirmar; nunca se cobra más de
-            lo disponible.
+            El inventario y los precios se validan en el servidor al confirmar; nunca se cobra más
+            de lo disponible.
           </p>
         </form>
 
@@ -187,11 +241,11 @@ function CheckoutPage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Envío</dt>
-              <dd>{shipping === 0 ? "Gratis" : formatMoney(shipping)}</dd>
+              <dd>{calculatedShipping === 0 ? "Gratis" : formatMoney(calculatedShipping)}</dd>
             </div>
             <div className="flex justify-between border-t pt-2 font-display text-lg">
               <dt>Total</dt>
-              <dd>{formatMoney(total)}</dd>
+              <dd>{formatMoney(calculatedTotal)}</dd>
             </div>
           </dl>
         </aside>

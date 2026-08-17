@@ -163,12 +163,46 @@ Cierre sesión, vuelva a ingresar y abra `/admin`. La asignación es deliberadam
 5. Cambie el pedido a cancelado desde `/admin`; el inventario debe restaurarse una sola vez.
 6. Revise los correos del proveedor y el estado `sent` en `order_email_dispatches`.
 
-## 8. Validaciones antes de entregar cambios
+## 8. Pruebas automatizadas completas
+
+Las pruebas integrales crean usuarios y productos temporales y los eliminan al finalizar. Verifican RLS, ocultamiento de costos, dos pedidos concurrentes sobre la última unidad, snapshots financieros, restauración de inventario, aislamiento entre clientes, notificaciones Realtime y la cola de correo.
+
+Con Supabase y la Edge Function ejecutándose, abra otra terminal:
+
+```bash
+npm run supabase:reset
+npm run test:integration
+```
+
+El resultado esperado es `1 pass` y `0 fail`. El test falla expresamente si ambos pedidos concurrentes venden la última unidad, un cliente ve el pedido de otro o Realtime no entrega la notificación en ocho segundos.
+
+La prueba normal sólo valida que el correo quede en cola. Para hacer un envío real, complete credenciales válidas en `supabase/functions/.env.local`, use direcciones aceptadas por su proveedor y ejecute:
+
+```bash
+npm run test:email
+```
+
+Este último comando consume envíos reales del proveedor. Confirme además `status = sent`, `admin_sent_at` y `customer_sent_at` en `order_email_dispatches`.
+
+## 9. Validación responsive, accesibilidad y SEO
+
+Ejecute `npm run dev` y revise al menos `/`, `/catalogo`, un `/producto/:slug`, `/carrito`, `/checkout`, `/mi-cuenta`, `/admin` y `/pedido-admin/:id` en estos anchos:
+
+- móvil: 360 × 800 y 390 × 844;
+- tableta: 768 × 1024;
+- escritorio: 1280 × 800 y 1440 × 900.
+
+En cada vista compruebe navegación por teclado, foco visible, enlace “Saltar al contenido”, textos alternativos de imágenes, contraste, zoom al 200 %, ausencia de desplazamiento horizontal y respeto de `prefers-reduced-motion`. Para SEO confirme títulos/descripciones, un solo `h1`, datos estructurados de producto, `robots.txt` y `sitemap.xml`.
+
+La validación visual requiere datos locales y una sesión de administrador. No la sustituya sólo por la compilación: capture las vistas anteriores y registre cualquier diferencia antes de publicar.
+
+## 10. Validaciones antes de entregar cambios
 
 ```bash
 npm run typecheck
 npm run lint
 npm run build
+npm run test:integration
 docker compose --env-file .env.local config
 ```
 
@@ -178,7 +212,7 @@ Para verificar todas las migraciones desde cero, después de respaldar cualquier
 npm run supabase:reset
 ```
 
-## 9. Aplicar a Supabase remoto (cuando corresponda)
+## 11. Aplicar a Supabase remoto (cuando corresponda)
 
 Esto modifica el proyecto conectado; no es necesario para trabajar localmente:
 

@@ -13,6 +13,17 @@ cp .env.local.example .env.local   # completar con `npm run supabase:status`
 npm run dev
 ```
 
+## Estado de la implementación
+
+El proyecto incluye el panel administrativo completo, gestión de galería en Supabase Storage, selección de imagen principal, detalle administrativo enlazado desde notificaciones, reportes separados con exportación, configuración de métodos de envío y pruebas integrales de seguridad y pedidos. Los comandos reproducibles y la validación final están en la guía de instalación.
+
+Después de aplicar las migraciones locales, ejecute:
+
+```bash
+npm run check
+npm run test:integration
+```
+
 [ROL]: Arquitecto de Software Full Stack Senior especializado en Lovable + Supabase, diseño de plataformas eCommerce modernas, PostgreSQL, Row Level Security (RLS), autenticación, almacenamiento de archivos, funciones server-side, analítica de ventas y UX/UI responsive.
 
 [OBJETIVO]: Diseñar e implementar en Lovable una aplicación web eCommerce completa llamada SolNatural´s, orientada a la venta de productos naturales, utilizando Supabase como backend principal para autenticación, base de datos PostgreSQL, almacenamiento, seguridad y lógica server-side.

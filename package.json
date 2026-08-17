@@ -17,7 +17,9 @@
     "supabase:stop": "supabase stop",
     "supabase:status": "supabase status",
     "supabase:reset": "supabase db reset --local",
-    "supabase:functions": "supabase functions serve --env-file supabase/functions/.env.local"
+    "supabase:functions": "supabase functions serve --env-file supabase/functions/.env.local",
+    "test:integration": "node --env-file=.env.local --test tests/integration/*.test.mjs",
+    "test:email": "cross-env TEST_EMAIL_DELIVERY=true node --env-file=.env.local --test tests/integration/*.test.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -82,6 +84,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "cross-env": "^10.1.0",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",

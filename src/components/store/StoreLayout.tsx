@@ -1,13 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import {
-  LayoutDashboard,
-  LogOut,
-  Menu,
-  Package,
-  Search,
-  ShoppingBag,
-  User,
-} from "lucide-react";
+import { LayoutDashboard, LogOut, Menu, Package, Search, ShoppingBag, User } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -172,7 +164,10 @@ export function StoreLayout({ children }: { children: ReactNode }) {
           <Brand />
 
           <nav className="ml-6 hidden items-center gap-5 lg:flex">
-            <Link to="/catalogo" className="text-sm font-medium transition-colors hover:text-primary">
+            <Link
+              to="/catalogo"
+              className="text-sm font-medium transition-colors hover:text-primary"
+            >
               Catálogo
             </Link>
             <CategoryLinks />
@@ -198,7 +193,9 @@ export function StoreLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1">{children}</main>
+      <main id="main-content" tabIndex={-1} className="flex-1">
+        {children}
+      </main>
 
       <footer className="mt-20 border-t bg-cream">
         <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-4">

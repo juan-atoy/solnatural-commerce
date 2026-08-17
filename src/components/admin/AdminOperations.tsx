@@ -1,7 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Download, Plus } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Copy, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+
+import { ProductImageManager } from "@/components/admin/ProductImageManager";
+import {
+  AdminReportsPanel,
+  AuditPanel,
+  CustomersPanel,
+  InventoryPanel,
+  NotificationsPanel,
+  SettingsPanel,
+} from "@/components/admin/AdminExtendedPanels";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +42,6 @@ import {
   adminListProducts,
   createProduct,
   duplicateProduct,
-  getSalesReport,
   setOrderStatus,
   setPaymentStatus,
   setProductStatus,
@@ -61,13 +71,34 @@ function slugify(value: string) {
 
 export function AdminOperations() {
   return (
-    <Tabs defaultValue="products" className="mt-12">
-      <TabsList className="h-auto w-full flex-wrap justify-start">
+    <Tabs defaultValue="dashboard" className="mt-12" id="administracion">
+      <TabsList
+        className="h-auto w-full flex-wrap justify-start gap-1"
+        aria-label="Menú administrativo"
+      >
+        <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+        <TabsTrigger value="orders">Pedidos</TabsTrigger>
         <TabsTrigger value="products">Productos</TabsTrigger>
         <TabsTrigger value="categories">Categorías</TabsTrigger>
-        <TabsTrigger value="orders">Pedidos</TabsTrigger>
+        <TabsTrigger value="inventory">Inventario</TabsTrigger>
+        <TabsTrigger value="customers">Clientes</TabsTrigger>
+        <TabsTrigger value="notifications">Notificaciones</TabsTrigger>
         <TabsTrigger value="reports">Reportes</TabsTrigger>
+        <TabsTrigger value="settings">Configuración</TabsTrigger>
+        <TabsTrigger value="audit">Auditoría</TabsTrigger>
       </TabsList>
+      <TabsContent value="dashboard">
+        <div className="surface-panel mt-6 p-6">
+          <h2 className="font-display text-2xl">Resumen administrativo</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Los indicadores, la tendencia, el inventario bajo y los pedidos recientes están en la
+            parte superior de esta página.
+          </p>
+          <Button className="mt-4" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+            Ir al dashboard
+          </Button>
+        </div>
+      </TabsContent>
       <TabsContent value="products">
         <ProductsPanel />
       </TabsContent>
@@ -77,8 +108,23 @@ export function AdminOperations() {
       <TabsContent value="orders">
         <OrdersPanel />
       </TabsContent>
+      <TabsContent value="inventory">
+        <InventoryPanel />
+      </TabsContent>
+      <TabsContent value="customers">
+        <CustomersPanel />
+      </TabsContent>
+      <TabsContent value="notifications">
+        <NotificationsPanel />
+      </TabsContent>
       <TabsContent value="reports">
-        <ReportsPanel />
+        <AdminReportsPanel />
+      </TabsContent>
+      <TabsContent value="settings">
+        <SettingsPanel />
+      </TabsContent>
+      <TabsContent value="audit">
+        <AuditPanel />
       </TabsContent>
     </Tabs>
   );
@@ -316,6 +362,7 @@ function ProductRow({
         </Select>
       </TableCell>
       <TableCell>
+        <ProductImageManager product={product} />
         <Button
           variant="ghost"
           size="sm"
@@ -434,7 +481,13 @@ function OrderRow({
 }) {
   return (
     <TableRow>
-      <TableCell className="font-medium">{order.order_number}</TableCell>
+      <TableCell className="font-medium">
+        <Button asChild variant="link" className="h-auto px-0">
+          <Link to="/pedido-admin/$id" params={{ id: order.id }}>
+            {order.order_number}
+          </Link>
+        </Button>
+      </TableCell>
       <TableCell>
         {order.customer_name}
         <p className="text-xs text-muted-foreground">{order.customer_email}</p>
@@ -484,84 +537,5 @@ function OrderRow({
         </Select>
       </TableCell>
     </TableRow>
-  );
-}
-
-function ReportsPanel() {
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const report = useQuery({
-    queryKey: ["admin", "report", from, to],
-    queryFn: () =>
-      getSalesReport({ from: from ? `${from}T00:00:00` : null, to: to ? `${to}T23:59:59` : null }),
-  });
-  function exportCsv() {
-    const header = "fecha,pedido,cliente,estado,pago,venta,costo,utilidad,margen";
-    const rows = (report.data ?? []).map((row) =>
-      [
-        row.created_at,
-        row.order_number,
-        row.customer_name,
-        row.order_status,
-        row.payment_status,
-        row.sales,
-        row.cost,
-        row.profit,
-        row.margin,
-      ]
-        .map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`)
-        .join(","),
-    );
-    const url = URL.createObjectURL(
-      new Blob([[header, ...rows].join("\n")], { type: "text/csv;charset=utf-8" }),
-    );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "reporte-ventas.csv";
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-  return (
-    <div className="mt-6">
-      <div className="flex flex-wrap items-end gap-3">
-        <div>
-          <Label>Desde</Label>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-        </div>
-        <div>
-          <Label>Hasta</Label>
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-        </div>
-        <Button onClick={exportCsv} disabled={!report.data?.length}>
-          <Download className="size-4" /> Exportar CSV
-        </Button>
-      </div>
-      <div className="mt-5 overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Pedido</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Venta</TableHead>
-              <TableHead>Costo</TableHead>
-              <TableHead>Utilidad</TableHead>
-              <TableHead>Margen</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {(report.data ?? []).map((row) => (
-              <TableRow key={row.order_number}>
-                <TableCell>{row.order_number}</TableCell>
-                <TableCell>{row.customer_name}</TableCell>
-                <TableCell>{formatMoney(row.sales)}</TableCell>
-                <TableCell>{formatMoney(row.cost)}</TableCell>
-                <TableCell>{formatMoney(row.profit)}</TableCell>
-                <TableCell>{row.margin}%</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
   );
 }
