@@ -37,7 +37,7 @@ function AuthPage() {
   const [firstName, setFirstName] = useState("");
 
   useEffect(() => {
-    if (user && mode !== "reset") void navigate({ to: "/mi-cuenta", replace: true });
+    if (user && mode !== "reset") void navigate({ to: "/", replace: true });
   }, [user, mode, navigate]);
 
   async function requestPasswordReset(event: React.FormEvent) {
@@ -78,7 +78,7 @@ function AuthPage() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       toast.success("Bienvenido de vuelta");
-      void navigate({ to: "/mi-cuenta" });
+      void navigate({ to: "/" });
     } catch (error) {
       toast.error(friendlyError(error));
     } finally {
@@ -95,7 +95,7 @@ function AuthPage() {
         password,
         options: {
           data: { first_name: firstName },
-          emailRedirectTo: `${window.location.origin}/mi-cuenta`,
+          emailRedirectTo: `${window.location.origin}/`,
         },
       });
       if (error) throw error;
@@ -118,7 +118,7 @@ function AuthPage() {
         return;
       }
       if (result.redirected) return;
-      void navigate({ to: "/mi-cuenta" });
+      void navigate({ to: "/" });
     } finally {
       setBusy(false);
     }
