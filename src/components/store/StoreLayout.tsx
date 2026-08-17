@@ -26,12 +26,16 @@ function Brand() {
     <Link to="/" className="flex items-center gap-2">
       <img
         src="/images/logo.png"
-        alt="SolNatural's"
-        className="h-12 w-auto"
+        alt="Logo de SolNatural´s"
+        width={40}
+        height={40}
+        className="size-10 shrink-0 rounded-full border border-border object-cover"
       />
+      <span className="font-display text-xl tracking-tight">SolNatural´s</span>
     </Link>
   );
 }
+
 function CartButton() {
   const { count } = useCart();
   return (
