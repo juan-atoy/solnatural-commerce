@@ -90,20 +90,33 @@ test(
       const realtimeNotification = new Promise((resolve) => {
         realtimeResolve = resolve;
       });
-      channel = admin.client
-        .channel(unique("order-notifications"))
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "notifications",
-            filter: `user_id=eq.${admin.user.id}`,
-          },
-          (payload) => realtimeResolve(payload.new),
-        )
-        .subscribe();
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await new Promise((resolve, reject) => {
+        const subscriptionTimeout = setTimeout(
+          () => reject(new Error("Realtime subscription timeout before SUBSCRIBED")),
+          10_000,
+        );
+        channel = admin.client
+          .channel(unique("order-notifications"))
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "notifications",
+              filter: `user_id=eq.${admin.user.id}`,
+            },
+            (payload) => realtimeResolve(payload.new),
+          )
+          .subscribe((status, error) => {
+            if (status === "SUBSCRIBED") {
+              clearTimeout(subscriptionTimeout);
+              resolve();
+            } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+              clearTimeout(subscriptionTimeout);
+              reject(error ?? new Error(`Realtime channel status: ${status}`));
+            }
+          });
+      });
 
       const payload = {
         p_items: [{ product_id: productId, quantity: 1 }],
